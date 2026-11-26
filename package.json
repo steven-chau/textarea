@@ -1,0 +1,11 @@
+{
+  "name": "textarea",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A private plain-text clipboard for GitHub Pages.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

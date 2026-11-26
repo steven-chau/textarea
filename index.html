@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'none'; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A private plain-text clipboard: notes stay in your browser, share links carry the text in the URL, and nothing is uploaded."
+    />
+    <meta name="theme-color" content="#f8fafc" />
+    <title>textarea — a private plain-text clipboard</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <script src="./theme.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="tabs-area">
+          <div class="tabs-scroller">
+            <div class="tabs" id="tabs" role="tablist" aria-label="Notes"></div>
+          </div>
+          <button
+            id="add-tab"
+            class="icon-button"
+            type="button"
+            title="Add note (Ctrl/⌘+Alt+N)"
+            aria-label="Add note"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+        </div>
+        <div class="topbar-actions" role="group" aria-label="Display and sharing">
+          <button
+            id="theme-toggle"
+            class="icon-button"
+            type="button"
+            title="Switch to dark mode"
+            aria-label="Switch to dark mode"
+          >
+            <svg class="theme-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
+            <svg class="theme-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+          </button>
+          <button
+            id="share-btn"
+            class="share-button"
+            type="button"
+            title="Share (Ctrl/⌘+Alt+S)"
+            aria-label="Share"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+            <span class="button-label">Share</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <div class="editor-pane" id="editor-pane">
+          <div class="highlight-layer" aria-hidden="true">
+            <div class="highlight-inner" id="highlight-inner"></div>
+          </div>
+          <div class="gutter" id="gutter" role="group" aria-label="Line numbers. Click to highlight a line; Shift-click to extend; arrow keys move between lines.">
+            <div class="gutter-inner" id="gutter-inner"></div>
+          </div>
+          <textarea
+            id="editor"
+            aria-label="Text editor"
+            aria-describedby="editor-hint"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            wrap="soft"
+            placeholder="Start typing..."
+          ></textarea>
+          <div class="measure" id="measure" aria-hidden="true"></div>
+        </div>
+      </main>
+
+      <footer class="statusbar">
+        <div class="status-left">
+          <button
+            id="privacy-btn"
+            class="status-button privacy-button"
+            type="button"
+            title="How your text is handled"
+            aria-label="Private by design. Open privacy details"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+            <span class="button-label">Private</span>
+          </button>
+          <span id="save-status" class="save-status">Saved in this browser</span>
+          <span id="note-warning" class="note-warning" hidden>Large note</span>
+          <div class="actions" role="group" aria-label="Document actions">
+            <button id="undo-btn" class="action-button" type="button" title="Undo" aria-label="Undo" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
+            </button>
+            <button id="redo-btn" class="action-button" type="button" title="Redo" aria-label="Redo" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 14 5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></svg>
+            </button>
+            <button id="copy-btn" class="action-button" type="button" title="Copy text" aria-label="Copy text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+            </button>
+            <button id="clear-btn" class="action-button" type="button" title="Clear text" aria-label="Clear text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>
+            </button>
+            <button id="download-btn" class="action-button" type="button" title="Download as text file" aria-label="Download as text file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+            </button>
+            <button id="wrap-btn" class="action-button" type="button" title="Disable word wrap" aria-label="Disable word wrap" aria-pressed="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h15a3 3 0 1 1 0 6h-4M16 16l-2 2 2 2M3 18h7" /></svg>
+            </button>
+          </div>
+        </div>
+        <div class="stats" id="stats" aria-label="Document statistics">
+          <span class="stat" id="stat-lines">1 line</span><span class="stat" id="stat-words"> · 0 words</span><span class="stat" id="stat-chars"> · 0 chars</span><span class="stat" id="stat-bytes"> · 0 B</span>
+        </div>
+      </footer>
+    </div>
+
+    <p id="editor-hint" class="visually-hidden">
+      Plain-text editor. Press Tab to insert a tab character, or Escape then Tab to move
+      focus out. Use the line-number buttons to highlight lines; hold Shift to extend.
+    </p>
+    <p id="live" class="visually-hidden" aria-live="polite" aria-atomic="true"></p>
+    <div id="toast" class="toast" aria-hidden="true" hidden></div>
+
+    <div id="share-popover" class="share-popover" role="dialog" aria-label="Share link" hidden>
+      <p class="share-status" id="share-status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6" /></svg>
+        <span id="share-status-text">Link copied</span>
+      </p>
+      <label class="visually-hidden" for="share-url">Shareable link</label>
+      <input
+        id="share-url"
+        class="share-url"
+        type="text"
+        readonly
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+      <div class="share-actions">
+        <button id="share-copy" class="text-button" type="button">Copy link</button>
+      </div>
+      <p class="share-note">
+        This link is a snapshot: later edits are not included. Anyone with the link can
+        read it. The text lives in the link and is never uploaded.
+      </p>
+      <p id="share-warning" class="share-warning" hidden>
+        This link is very long; some apps may truncate it. Download the note instead.
+      </p>
+    </div>
+
+    <dialog id="privacy-dialog" class="dialog" aria-labelledby="privacy-title">
+      <div class="dialog-head">
+        <h2 id="privacy-title">Private by design</h2>
+        <button class="icon-button dialog-close" type="button" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <p>
+          Your notes are stored only in this browser. Nothing is uploaded. There is no
+          analytics, telemetry, or third-party code on this page.
+        </p>
+        <p>
+          Share links carry a copy of the note in the URL fragment. Fragments are never
+          sent to the server, but anyone with the link can read it. Links are snapshots:
+          later edits are not included.
+        </p>
+        <p>
+          The site asks for no permissions and never reads your clipboard. The editor has
+          autofill, autocorrect, and spellcheck disabled.
+        </p>
+        <p>
+          GitHub Pages, the host, sees ordinary page requests but never your note text.
+          Other sites published under <code>steven-chau.github.io</code> share this
+          browser origin and could access local storage; a custom domain would isolate
+          them.
+        </p>
+        <p class="dialog-links">
+          <a href="https://github.com/steven-chau/textarea" target="_blank" rel="noopener noreferrer">View the source</a>
+        </p>
+      </div>
+    </dialog>
+
+    <dialog id="confirm-dialog" class="dialog confirm-dialog" aria-labelledby="confirm-title">
+      <h2 id="confirm-title">Are you sure?</h2>
+      <p id="confirm-message"></p>
+      <div class="dialog-actions">
+        <button class="text-button" type="button" data-confirm-cancel>Cancel</button>
+        <button class="text-button danger" type="button" data-confirm-ok>Confirm</button>
+      </div>
+    </dialog>
+
+    <noscript>
+      <p class="noscript">textarea needs JavaScript to run. Nothing is uploaded either way.</p>
+    </noscript>
+  </body>
+</html>
