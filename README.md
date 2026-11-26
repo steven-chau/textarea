@@ -2,7 +2,7 @@
 
 A private, local-first plain-text clipboard for the browser.
 
-Live site (after enabling GitHub Pages): <https://steven-chau.github.io/textarea/>
+Live site: <https://steven-chau.github.io/textarea/>
 
 Type or paste, keep several notes as tabs, and share a note as a self-contained link.
 There is no account, no server, and no database. Notes live in `localStorage`; a share
@@ -16,6 +16,8 @@ link carries the text in the URL fragment.
 - Light and dark themes, following the OS by default.
 - Copy, clear (undoable), download as `.txt`, word wrap, and live line/word/char/byte counts.
 - Share by link, encoded in the fragment as compressed base64url, decoded locally.
+- Read-only Markdown preview with no raw HTML, remote images, or external loads.
+- Installable PWA with a same-origin service worker for offline use.
 - Keyboard accessible controls, a privacy dialog, and no third-party resources.
 
 ## Privacy
@@ -23,13 +25,17 @@ link carries the text in the URL fragment.
 The short version: your text stays in this browser, and nothing on this page phones home.
 
 - Notes and preferences are stored only in `localStorage`.
-- The app contains no `fetch`, XHR, WebSocket, beacon, analytics, telemetry, or third-party
-  scripts, styles, fonts, or images.
+- The page contains no `fetch`, XHR, WebSocket, beacon, analytics, telemetry, or
+  third-party scripts, styles, fonts, or images.
 - A strict Content Security Policy ships in `index.html`, including
-  `default-src 'none'` and `connect-src 'none'`.
+  `default-src 'none'`, `connect-src 'none'`, and `worker-src 'self'`.
 - The clipboard is write-only. The site never reads it.
 - Autofill, autocorrect, autocapitalize, and spellcheck are disabled on the editor.
-- The site requests no permissions and registers no service worker.
+- The only background code is a same-origin service worker that caches this app's own
+  files for offline loading. It cannot access `localStorage`, never caches note text, and
+  makes no third-party requests.
+- Markdown preview builds DOM text nodes only. Raw HTML is shown as text, external images
+  are never loaded, and links open only when clicked.
 - Share links are snapshots. Fragment text is never sent to the host, but anyone with the
   link, browser history, a clipboard manager, or the messaging app can read it.
 
@@ -58,6 +64,10 @@ Tests use the Node test runner and the built-in compression streams (Node 20+):
 node --test tests/*.test.mjs
 ```
 
+After the first load the service worker caches the app shell. During development, open
+DevTools → Application → Service Workers and choose **Unregister** (or enable
+**Update on reload**) if you need to see file changes immediately.
+
 ## Keyboard shortcuts
 
 | Action | Shortcut |
@@ -69,6 +79,7 @@ node --test tests/*.test.mjs
 | Toggle theme | `Ctrl/⌘ + Alt + D` |
 | Share | `Ctrl/⌘ + Alt + S` |
 | Toggle word wrap | `Ctrl/⌘ + Alt + L` |
+| Toggle Markdown preview | `Ctrl/⌘ + Alt + M` |
 | Privacy details | `Ctrl/⌘ + Alt + P` |
 | Move focus out of the editor | `Escape`, then `Tab` |
 
@@ -84,17 +95,21 @@ available from the toolbar.
   and you can download the note instead.
 - Open the site in one browser tab at a time. Browser tabs do not sync; the last one to
   save wins.
+- Markdown preview is a safe subset: no tables, task lists, raw HTML execution, or remote
+  images.
+- Offline use requires one successful online visit to install the service worker.
+  Clearing site data removes the cached shell.
 
 ## Deploy
 
-The repository is already a static site. On GitHub:
+GitHub Pages is enabled for this repository and deploys from `main` at
+<https://steven-chau.github.io/textarea/>. For reference, the configuration is:
 
 1. Settings → Pages → Build and deployment → Deploy from a branch.
 2. Branch `main`, folder `/` (root).
-3. The site appears at <https://steven-chau.github.io/textarea/>.
 
 All asset paths are relative, so the `/textarea/` subpath works without configuration.
-There is no build workflow.
+The service worker scope is the same subpath. There is no build workflow.
 
 ## License
 

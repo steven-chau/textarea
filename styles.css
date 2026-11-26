@@ -1,12 +1,12 @@
 :root {
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --editor-font-size: 13px;
-  --editor-line-height: 20px;
-  --editor-pad-y: 12px;
-  --editor-pad-x: 16px;
-  --gutter-w: 48px;
-  --topbar-h: 46px;
-  --statusbar-h: 40px;
+  --editor-font-size: 16px;
+  --editor-line-height: 25px;
+  --editor-pad-y: 14px;
+  --editor-pad-x: 18px;
+  --gutter-w: 54px;
+  --topbar-h: 52px;
+  --statusbar-h: 44px;
 
   --bg: #ffffff;
   --bg-header: #f8fafc;
@@ -73,7 +73,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.5;
   overflow: hidden;
 }
@@ -130,7 +130,7 @@ button {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 0;
+  padding: 7px 0;
 }
 
 .tabs-scroller {
@@ -163,11 +163,11 @@ button {
   display: flex;
   align-items: center;
   gap: 2px;
-  max-width: 180px;
-  height: 30px;
-  padding: 0 10px;
+  max-width: 220px;
+  height: 34px;
+  padding: 0 12px;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -193,22 +193,22 @@ button {
 
 .tab-ext {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .tab-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   margin-left: -4px;
   padding: 0;
   border: 0;
   border-radius: 4px;
   background: transparent;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1;
   opacity: 0;
   pointer-events: none;
@@ -227,14 +227,14 @@ button {
 }
 
 .tab-rename {
-  width: 120px;
-  height: 30px;
-  padding: 0 8px;
+  width: 150px;
+  height: 34px;
+  padding: 0 9px;
   border: 1px solid var(--blue);
-  border-radius: 5px;
+  border-radius: 6px;
   background: var(--bg);
   color: var(--text);
-  font-size: 13px;
+  font-size: 16px;
   outline: none;
 }
 
@@ -244,7 +244,7 @@ button {
   align-items: center;
   gap: 4px;
   margin-left: auto;
-  padding: 5px 0;
+  padding: 7px 0;
 }
 
 .icon-button,
@@ -259,24 +259,24 @@ button {
 }
 
 .icon-button {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   flex: none;
-  border-radius: 5px;
+  border-radius: 6px;
 }
 
 .action-button {
-  width: 30px;
-  height: 28px;
-  border-radius: 4px;
+  width: 34px;
+  height: 32px;
+  border-radius: 5px;
 }
 
 .status-button {
-  height: 28px;
-  gap: 5px;
-  padding: 0 7px;
-  border-radius: 4px;
-  font-size: 11px;
+  height: 32px;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 13px;
 }
 
 .icon-button:hover,
@@ -299,8 +299,8 @@ button {
 .action-button svg,
 .status-button svg,
 .share-button svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   flex: none;
 }
 
@@ -320,14 +320,14 @@ button {
 .share-button {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 34px;
-  padding: 0 12px;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
@@ -387,12 +387,12 @@ button {
   width: 100%;
   height: var(--editor-line-height);
   min-height: var(--editor-line-height);
-  padding: 0 9px 0 4px;
+  padding: 0 10px 0 5px;
   border: 0;
   background: transparent;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   line-height: var(--editor-line-height);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -514,6 +514,155 @@ button {
   min-height: var(--editor-line-height);
 }
 
+/* Markdown preview */
+
+.preview {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  z-index: 3;
+  display: none;
+  height: 100%;
+  overflow: auto;
+  padding: 20px max(28px, calc((100% - 78ch) / 2)) 56px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-wrap: break-word;
+}
+
+.editor-pane.preview-mode .preview {
+  display: block;
+}
+
+.editor-pane.preview-mode .gutter,
+.editor-pane.preview-mode .highlight-layer,
+.editor-pane.preview-mode #editor,
+.editor-pane.preview-mode .measure {
+  display: none;
+}
+
+#preview:focus-visible {
+  outline: none;
+  box-shadow: inset 2px 0 0 var(--blue);
+}
+
+.preview > :first-child {
+  margin-top: 0;
+}
+
+.preview h1,
+.preview h2,
+.preview h3,
+.preview h4,
+.preview h5,
+.preview h6 {
+  margin: 1.1em 0 0.4em;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.preview h1 {
+  font-size: 1.65em;
+}
+
+.preview h2 {
+  font-size: 1.4em;
+}
+
+.preview h3 {
+  font-size: 1.2em;
+}
+
+.preview h4 {
+  font-size: 1.05em;
+}
+
+.preview h5,
+.preview h6 {
+  font-size: 1em;
+  color: var(--text-secondary);
+}
+
+.preview p {
+  margin: 0.7em 0;
+}
+
+.preview ul,
+.preview ol {
+  margin: 0.7em 0;
+  padding-left: 1.6em;
+}
+
+.preview li {
+  margin: 0.2em 0;
+}
+
+.preview blockquote {
+  margin: 0.9em 0;
+  padding: 0.1em 0 0.1em 12px;
+  border-left: 3px solid var(--blue-line);
+  color: var(--text-secondary);
+}
+
+.preview blockquote > :first-child {
+  margin-top: 0;
+}
+
+.preview blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.preview pre {
+  margin: 0.9em 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line-subtle);
+  border-radius: 6px;
+  background: var(--bg-header);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.preview code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--hover);
+  font-size: 0.92em;
+}
+
+.preview pre code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: inherit;
+}
+
+.preview a {
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.preview hr {
+  margin: 1.2em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.preview del {
+  color: var(--muted);
+}
+
+.preview .md-image {
+  color: var(--muted);
+}
+
+.preview .preview-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* Status bar */
 
 .statusbar {
@@ -540,7 +689,7 @@ button {
 }
 
 .save-status {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -552,7 +701,7 @@ button {
 }
 
 .note-warning {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--warn);
   white-space: nowrap;
 }
@@ -567,7 +716,7 @@ button {
   flex: none;
   min-width: 0;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -579,16 +728,16 @@ button {
 .share-popover {
   position: fixed;
   z-index: 30;
-  width: min(380px, calc(100vw - 20px));
+  width: min(420px, calc(100vw - 20px));
   max-height: calc(100dvh - var(--topbar-h) - 20px);
   overflow: auto;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--bg);
   color: var(--text);
   box-shadow: var(--shadow);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -602,8 +751,8 @@ button {
 }
 
 .share-status svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .share-status.is-error {
@@ -618,7 +767,7 @@ button {
   background: var(--bg-header);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .share-actions {
@@ -630,25 +779,25 @@ button {
 .share-note {
   margin: 8px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .share-warning {
   margin: 8px 0 0;
   color: var(--warn);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* Buttons */
 
 .text-button {
-  height: 32px;
-  padding: 0 12px;
+  height: 38px;
+  padding: 0 14px;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: 6px;
   background: var(--bg);
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .text-button:hover {
@@ -668,14 +817,16 @@ button {
 /* Dialogs */
 
 .dialog {
-  width: min(480px, calc(100vw - 24px));
+  width: min(540px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--bg);
   color: var(--text);
   box-shadow: var(--shadow);
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .dialog::backdrop {
@@ -693,12 +844,12 @@ button {
 
 .dialog h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 17px;
 }
 
 .dialog-body {
-  padding: 12px 14px;
-  font-size: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -716,7 +867,7 @@ button {
 
 .dialog-body code {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .dialog-links {
@@ -724,8 +875,8 @@ button {
 }
 
 .dialog-close {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 
 .confirm-dialog {
@@ -739,7 +890,7 @@ button {
 .confirm-dialog p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -788,13 +939,13 @@ button {
 
 @media (max-width: 640px) {
   :root {
-    --gutter-w: 40px;
-    --editor-pad-x: 12px;
-    --topbar-h: 44px;
+    --gutter-w: 46px;
+    --editor-pad-x: 14px;
+    --topbar-h: 52px;
   }
 
   .share-button {
-    width: 34px;
+    width: 38px;
     justify-content: center;
     padding: 0;
   }
@@ -825,6 +976,10 @@ button {
     max-width: 130px;
   }
 
+  .preview {
+    padding: 16px 18px 48px;
+  }
+
   .toast {
     display: block;
     position: fixed;
@@ -832,14 +987,14 @@ button {
     bottom: calc(var(--statusbar-h) + 10px);
     z-index: 40;
     max-width: calc(100vw - 24px);
-    padding: 7px 12px;
+    padding: 8px 14px;
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 6px;
     background: var(--bg);
     color: var(--text);
     box-shadow: var(--shadow);
-    font-size: 12px;
+    font-size: 14px;
     white-space: nowrap;
     text-overflow: ellipsis;
     transform: translateX(-50%);
@@ -867,6 +1022,10 @@ button {
   .action-button {
     width: 26px;
     height: 26px;
+  }
+
+  .stats {
+    display: none;
   }
 }
 

@@ -1,6 +1,6 @@
 # textarea — Implementation Plan
 
-**Status:** Implemented (v1)
+**Status:** Implemented (v1 + phase 2)
 **Date:** 2026-11-26
 **Companion:** [features.md](features.md)
 
@@ -40,6 +40,10 @@ Two technical choices were validated before writing this plan:
   app.js                state, rendering, events, editor layout, dialogs
   js/store.js           localStorage schema, validation, debounced persistence
   js/share.js           base64url + gzip codec for fragment payloads
+  js/markdown.js        safe, dependency-free Markdown renderer
+  sw.js                 same-origin app-shell cache for offline use
+  manifest.webmanifest  PWA metadata
+  icons/                PWA and Apple touch icons
   favicon.svg           self-hosted icon (no external requests)
   tests/share.test.mjs  node:test unit tests for the codec (no dependencies)
   tests/privacy.test.mjs static privacy checks over source files
@@ -248,7 +252,7 @@ the textarea in Chromium.
 ## 8. Privacy implementation
 
 - **CSP meta** exactly:
-  `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'none'; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'`
+  `default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'none'; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'`
 - **Referrer:** `<meta name="referrer" content="no-referrer">`.
 - No `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, or `sendBeacon` anywhere.
 - No service worker, permissions, cookies, `navigator.clipboard.read*`, or hidden iframes.
@@ -282,7 +286,8 @@ the textarea in Chromium.
 - Light and dark token sets inspired by the reference: neutral canvas, subtle borders,
   blue accent, yellow highlight, green saved state.
 - Layout: `100dvh` grid with fixed top bar, flexible editor pane, fixed status bar.
-- Top bar 42–48 px; status bar 34–40 px; editor padding 10–12 px 16 px; line-height 1.55.
+- Top bar 52 px; status bar 44 px; editor padding 14 px 18 px; 16 px type on a 25 px
+  line grid; chrome 13–14 px.
 - Below 640 px: icon-only toolbar buttons, compact stats, scrollable tab strip, popover
   spans the viewport minus 20 px.
 - Icons 16 px, stroke-based, consistent weight.
@@ -368,17 +373,17 @@ Safari as manual checks by the user unless another browser is available.
 
 ## 15. Definition of done
 
-- [ ] All §5 v1 features in features.md work, with the two documented deviations.
-- [ ] Share links round-trip titles and text, including Unicode and 32 KB notes.
-- [ ] Reload, tab close, and offline-after-load preserve local notes.
-- [ ] Zero post-load network requests and zero third-party resources.
-- [ ] Privacy static test passes; CSP has no console violations.
-- [ ] Keyboard-only pass succeeds for every action.
-- [ ] 375 px, 768 px, and 1280 px layouts verified.
-- [ ] `node --test` passes.
-- [ ] README, LICENSE, and live Pages URL in place.
+- [x] All §5 v1 features in features.md work, with the documented deviations.
+- [x] Share links round-trip titles and text, including Unicode and 32 KB notes.
+- [x] Reload and tab close preserve local notes; offline use works after one online load.
+- [x] No third-party resources or requests; the only worker is same-origin.
+- [x] Privacy static test passes; CSP has no console violations.
+- [x] Keyboard-only pass succeeds for every action.
+- [x] 320 px, 375 px, 768 px, and 1280 px layouts verified.
+- [x] `node --test` passes.
+- [x] README, LICENSE, and live Pages URL in place.
 
-## 16. Deviations from features.md (to update after approval)
+## 16. Deviations from features.md (approved)
 
 1. **Undo/redo:** native browser history instead of a custom 50-step stack (§6).
    Rationale: reliability and far less code; tab switches reset history.
@@ -386,3 +391,22 @@ Safari as manual checks by the user unless another browser is available.
    reserve the plain combinations (§9).
 3. **Caveat added:** localStorage is shared across all project sites on
    `steven-chau.github.io`, so origin isolation is weaker than a dedicated domain (§3).
+
+## 17. Phase 2 addendum (implemented)
+
+Phase 2 added Markdown preview and an offline PWA without changing the privacy posture.
+
+- `js/markdown.js` is a dependency-free, DOM-only renderer. Raw HTML is shown as text,
+  images become user-initiated links, links are restricted to `http`, `https`, and
+  `mailto`, and all note text goes through `textContent`.
+- The preview toggle lives in the top bar and on `Ctrl/⌘+Alt+M`. It is session-only,
+  re-renders on tab switches, exits when a note is added, and exits on clear.
+- `manifest.webmanifest`, `icons/`, and `sw.js` provide installability and offline use.
+  The worker pre-caches the shell, uses network-first with cache fallback, and cannot read
+  or cache note text.
+- Registration is same-origin, scoped relative to the app, and silent on failure.
+- Privacy tests now scan `js/markdown.js` and `sw.js`, validate the manifest and every
+  cached shell file, and require `worker-src 'self'`.
+- Verified in Chromium: preview XSS/link/image safety with zero network requests; service
+  worker scope and cache under both `/` and `/textarea/`; offline reload; offline share
+  import; no console or CSP errors.

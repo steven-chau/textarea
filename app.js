@@ -1,5 +1,6 @@
 import * as store from "./js/store.js";
 import { encodePayload, decodePayload } from "./js/share.js";
+import { renderMarkdown } from "./js/markdown.js";
 
 const MAX_TABS = 20;
 const MAX_NAME = 64;
@@ -19,6 +20,8 @@ const els = {
   gutterInner: document.getElementById("gutter-inner"),
   highlightInner: document.getElementById("highlight-inner"),
   measure: document.getElementById("measure"),
+  preview: document.getElementById("preview"),
+  previewBtn: document.getElementById("preview-btn"),
   saveStatus: document.getElementById("save-status"),
   noteWarning: document.getElementById("note-warning"),
   undoBtn: document.getElementById("undo-btn"),
@@ -53,6 +56,7 @@ const state = {
   activeId: null,
   prefs: { theme: "auto", wrap: true },
   renamingId: null,
+  preview: false,
   shareOpen: false,
   sharePending: false,
   shareUrl: "",
@@ -230,6 +234,7 @@ function saveScrollNow() {
 }
 
 function rememberScroll() {
+  if (state.preview) return;
   const note = activeNote();
   if (note) note.scrollTop = els.editor.scrollTop;
 }
@@ -270,13 +275,58 @@ function applyWrap() {
   const label = on ? "Disable word wrap" : "Enable word wrap";
   els.wrapBtn.title = label;
   els.wrapBtn.setAttribute("aria-label", label);
-  scheduleLayout();
+  if (!state.preview) scheduleLayout();
 }
 
 function toggleWrap() {
   state.prefs.wrap = !state.prefs.wrap;
   store.savePrefs(state.prefs);
   applyWrap();
+}
+
+/* Markdown preview */
+
+function renderPreview() {
+  const note = activeNote();
+  if (!note) {
+    els.preview.textContent = "";
+    return;
+  }
+  renderMarkdown(note.text, els.preview);
+}
+
+function setPreviewMode(on, focus) {
+  if (on) rememberScroll();
+
+  state.preview = Boolean(on);
+  els.editorPane.classList.toggle("preview-mode", state.preview);
+  els.preview.hidden = !state.preview;
+  els.previewBtn.setAttribute("aria-pressed", String(state.preview));
+
+  const label = state.preview ? "Back to editing" : "Show Markdown preview";
+  els.previewBtn.title = label + " (Ctrl/⌘+Alt+M)";
+  els.previewBtn.setAttribute("aria-label", label);
+
+  if (state.preview) {
+    els.preview.scrollTop = 0;
+    renderPreview();
+    if (focus) els.preview.focus();
+  } else {
+    scheduleLayout(function () {
+      const note = activeNote();
+      if (note) {
+        els.editor.scrollTop = note.scrollTop || 0;
+        syncScroll();
+      }
+    });
+    if (focus) els.editor.focus();
+  }
+
+  updateUndoButtons();
+}
+
+function togglePreview() {
+  setPreviewMode(!state.preview, true);
 }
 
 /* Tabs */
@@ -479,6 +529,8 @@ function addNote() {
     return;
   }
 
+  if (state.preview) setPreviewMode(false, false);
+
   const note = makeNote(nextNoteName());
   state.notes.push(note);
   state.activeId = note.id;
@@ -531,7 +583,11 @@ function closeNote(id) {
   renderTabs();
   if (wasActive) {
     loadActiveNote();
-    els.editor.focus();
+    if (state.preview) {
+      els.preview.focus();
+    } else {
+      els.editor.focus();
+    }
   } else {
     focusTab(state.activeId);
   }
@@ -552,6 +608,12 @@ function loadActiveNote() {
   updateUndoButtons();
   updateStats();
 
+  if (state.preview) {
+    els.preview.scrollTop = 0;
+    renderPreview();
+    return;
+  }
+
   scheduleLayout(function () {
     els.editor.scrollTop = note.scrollTop || 0;
     syncScroll();
@@ -568,8 +630,8 @@ function updateActionButtons() {
 }
 
 function updateUndoButtons() {
-  els.undoBtn.disabled = !state.undoAvailable;
-  els.redoBtn.disabled = !state.redoAvailable;
+  els.undoBtn.disabled = state.preview || !state.undoAvailable;
+  els.redoBtn.disabled = state.preview || !state.redoAvailable;
 }
 
 function updateStats() {
@@ -602,6 +664,7 @@ function updateTabAria(note) {
 }
 
 function scheduleLayout(after) {
+  if (state.preview) return;
   if (after) state.afterLayout.push(after);
   if (state.layoutFrame) return;
   state.layoutFrame = window.requestAnimationFrame(function () {
@@ -946,6 +1009,7 @@ function clearNote() {
   ).then(function (confirmed) {
     if (!confirmed) return;
 
+    if (state.preview) setPreviewMode(false, true);
     els.editor.focus();
     els.editor.select();
     let usedNative = exec("delete");
@@ -1098,7 +1162,7 @@ function closeSharePopover() {
 function positionSharePopover() {
   if (!state.shareOpen) return;
   const rect = els.shareBtn.getBoundingClientRect();
-  const width = Math.min(380, window.innerWidth - 20);
+  const width = Math.min(420, window.innerWidth - 20);
   els.sharePopover.style.width = width + "px";
   els.sharePopover.style.top = rect.bottom + 6 + "px";
   els.sharePopover.style.right = Math.max(10, window.innerWidth - rect.right) + "px";
@@ -1246,6 +1310,10 @@ function onGlobalKeydown(event) {
       event.preventDefault();
       toggleWrap();
       break;
+    case "KeyM":
+      event.preventDefault();
+      togglePreview();
+      break;
     case "KeyP":
       event.preventDefault();
       openPrivacy();
@@ -1269,6 +1337,7 @@ function bindEvents() {
   }
 
   els.addTab.addEventListener("click", addNote);
+  els.previewBtn.addEventListener("click", togglePreview);
   els.themeToggle.addEventListener("click", toggleTheme);
   els.shareBtn.addEventListener("click", openShare);
   els.undoBtn.addEventListener("click", function () {
@@ -1387,6 +1456,25 @@ function bindEvents() {
   }
 }
 
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (
+    location.protocol !== "https:" &&
+    location.hostname !== "localhost" &&
+    location.hostname !== "127.0.0.1"
+  ) {
+    return;
+  }
+
+  window.addEventListener("load", function () {
+    navigator.serviceWorker
+      .register("./sw.js", { scope: "./", updateViaCache: "none" })
+      .catch(function () {
+        /* Offline support is optional; the editor works without it. */
+      });
+  });
+}
+
 function init() {
   store.onStorageError(handleStorageError);
   const loaded = store.load();
@@ -1414,6 +1502,7 @@ function init() {
   renderTabs();
   loadActiveNote();
   handleHash();
+  registerServiceWorker();
 }
 
 init();

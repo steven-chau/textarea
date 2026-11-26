@@ -1,6 +1,6 @@
 # textarea — Feature Document
 
-**Status:** Implemented (v1)
+**Status:** Implemented (v1 + phase 2)
 **Date:** 2026-11-26
 **Hosting:** GitHub Pages (static only)
 **Repository:** <https://github.com/steven-chau/textarea>
@@ -14,7 +14,7 @@ inside the URL fragment, so no server, account, or database is needed.
 
 The point of the project is privacy: **anything typed into the editor is never collected,
 transmitted, or read by the site or by any third party.** The site loads no third-party
-code and makes no outbound requests.
+code and makes no third-party requests.
 
 Inspired by [textarea.online](https://textarea.online/), but deliberately scoped to what
 static hosting can do.
@@ -25,6 +25,8 @@ static hosting can do.
 - Multiple notes ("tabs") that survive reload, with no sign-up.
 - Sharing that works with zero infrastructure and keeps note contents off the server.
 - A compact, polished light/dark UI that feels at home on desktop and mobile.
+- A read-only Markdown preview that never loads remote content or raw HTML.
+- An installable, offline-capable app shell, without any third-party service.
 - Privacy as a product property, not a policy: local-only storage, no third-party
   content, no clipboard reads, no autofill, no analytics, no telemetry.
 - A total payload small enough to load almost instantly on any connection.
@@ -33,11 +35,16 @@ static hosting can do.
 
 - First meaningful paint under 1 s on a typical broadband connection.
 - All core actions reachable by keyboard.
-- Text survives reload, tab close, and offline use after the page has loaded.
-- A share link reproduces the same note title and text in a different browser.
+- Text survives reload and tab close; after one online visit the app shell loads and
+  works offline.
+- A share link reproduces the same note title and text in a different browser, including
+  while offline once the app has been cached.
 - `grep` of the source finds no third-party origins used for loading anything.
-- DevTools shows zero network requests after the initial page load.
-- Content Security Policy blocks all outbound connections (`connect-src 'none'`).
+- The page makes no network calls. Only the same-origin service worker fetches or serves
+  app-shell files; there are never third-party requests.
+- Content Security Policy blocks all outbound connections (`connect-src 'none'`) and
+  confines workers to the same origin.
+- Markdown preview renders a safe subset with no raw HTML and no external images.
 - The editor has autofill, autocorrect, autocapitalize, and spellcheck disabled.
 - Works when served from a subpath: `https://steven-chau.github.io/textarea/`.
 
@@ -52,6 +59,7 @@ Explicitly out of scope for v1:
 - Third-party scripts, stylesheets, fonts, images, icons, or CDNs of any kind.
 - Reading the clipboard, requesting permissions, or loading hidden resources.
 - Contenteditable/rich text, Markdown editing, or syntax highlighting.
+- Markdown tables, task lists, raw HTML, and remote images in preview.
 - End-to-end encryption as a server feature. Since content never reaches a server, the
   whole note is client-side by construction.
 
@@ -149,7 +157,7 @@ Explicitly out of scope for v1:
 Top bar:
 
 - Left: tab strip and Add note.
-- Right: theme toggle, Share.
+- Right: Markdown preview toggle, theme toggle, Share.
 
 Bottom status bar:
 
@@ -186,6 +194,8 @@ Behaviors:
   scrollable tab strip, shortened stats.
 - The editor fills the remaining viewport; only the editor scrolls.
 - Touch targets at least 24 px, with primary toolbar controls 28–34 px.
+- Baseline type: 16 px editor on a 25 px line grid, with 13–14 px chrome, so the app is
+  legible at 100% browser zoom.
 
 ### 5.9 Accessibility
 
@@ -204,24 +214,28 @@ The core promise: **the site never takes anything from the user.** These are pro
 of the implementation, not just claims in a policy.
 
 1. **Content stays on the device.** Notes and preferences live only in `localStorage`.
-   There is no API call, WebSocket, beacon, `fetch`, or XHR in the application. Opening a
-   shared link decodes it locally.
+   The page makes no API calls, WebSocket, beacon, `fetch`, or XHR requests. A
+   same-origin service worker fetches and caches only the app's own files for offline
+   loading; it cannot read notes and makes no third-party requests. Opening a shared
+   link decodes it locally.
 2. **Zero third-party resources.** No external scripts, styles, fonts, images, icons,
    avatars, analytics, error trackers, or CDNs. The source contains no third-party URLs
    used for loading. The only outbound link, if any, is a user-initiated link to the
    repository in the privacy dialog.
 3. **Strict Content Security Policy.** A meta CSP ships in `index.html`:
-   `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;
-   font-src 'none'; connect-src 'none'; manifest-src 'self'; base-uri 'none';
-   form-action 'none'`. (`frame-ancestors` cannot be set via meta; GitHub Pages does not
-   allow custom headers.) `connect-src 'none'` makes accidental network calls fail.
+   `default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self';
+   img-src 'self' data:; font-src 'none'; connect-src 'none'; manifest-src 'self';
+   base-uri 'none'; form-action 'none'`. (`frame-ancestors` cannot be set via meta;
+   GitHub Pages does not allow custom headers.) `connect-src 'none'` makes accidental
+   page-level network calls fail.
 4. **No clipboard reads.** Copy is write-only and always triggered by a user gesture.
    Pasting is the browser's native paste into the editor, initiated by the user.
 5. **No autofill or password-manager input surfaces.** The editor disables autocomplete,
    autocorrect, and spellcheck; the app has no form submissions and no hidden fields.
-6. **No permissions.** The site never requests camera, microphone, notifications,
-   geolocation, contacts, clipboard read, or anything else. It registers no service
-   worker in v1.
+6. **No permissions, one scoped worker.** The site never requests camera, microphone,
+   notifications, geolocation, contacts, clipboard read, or anything else. It registers a
+   same-origin service worker scoped to this site that caches the app shell for offline
+   loading. The worker cannot access `localStorage`, so it never caches note text.
 7. **No cookies, no analytics, no telemetry, no logging.** There is no server we operate.
    GitHub Pages (the host) sees ordinary page requests (IP, user agent, requested path)
    as any static host does, but never sees note text: text is in `localStorage` or the
@@ -229,11 +243,14 @@ of the implementation, not just claims in a policy.
 8. **Share links are explicit and self-contained.** The user's text travels only in a URL
    the user deliberately copies. Anyone with the link, browser history, clipboard
    managers, or the delivery app can read it. The UI says this plainly.
-9. **Shared GitHub Pages origin.** Every project site under `steven-chau.github.io`
-   shares one browser origin, so JavaScript on another project page published under that
-   account could read this site's `localStorage`. Keys are namespaced to avoid collisions,
-   but strict isolation would require a custom domain (listed as deferred).
-10. **Honest limits.** The site cannot protect content from malicious browser extensions,
+9. **Safe Markdown preview.** Preview builds DOM nodes with `textContent` only. Raw HTML
+   is displayed as text; no images are created or loaded; links are limited to `http`,
+   `https`, and `mailto`, and open only when clicked, with `noopener noreferrer`.
+10. **Shared GitHub Pages origin.** Every project site under `steven-chau.github.io`
+    shares one browser origin, so JavaScript on another project page published under that
+    account could read this site's `localStorage`. Keys are namespaced to avoid
+    collisions, but strict isolation would require a custom domain (listed as deferred).
+11. **Honest limits.** The site cannot protect content from malicious browser extensions,
     a compromised device, or someone looking over the user's shoulder. It also cannot
     stop the user from pasting text into another site later.
 
@@ -249,12 +266,56 @@ content.
 - Target: under ~60 KB gzipped for HTML + CSS + JS.
 - No layout shift from late-loading assets.
 - No dependencies fetched at runtime or build time.
+- The service worker adds one small same-origin file and caches the app shell only.
+
+### 5.12 Markdown preview
+
+- A top-bar eye toggle switches the editor pane to a read-only preview. Pressing it again
+  returns to editing. The mode is session-only and is not persisted.
+- The preview replaces the editor, gutter, and highlight bands for the active note.
+- Rendering uses DOM nodes and `textContent`; it never assigns raw HTML and never creates
+  images or iframes.
+- Supported blocks: headings (`#`), paragraphs with soft line breaks, unordered lists,
+  ordered lists, blockquotes, fenced code blocks, and horizontal rules.
+- Supported inline: bold, italic, bold-italic, strikethrough, inline code, links,
+  autolinks, backslash escapes, and line breaks.
+- Links are limited to `http`, `https`, and `mailto`; anything else is shown as literal
+  text. Links open in a new tab only on click, with `noopener noreferrer`.
+- Images (`![alt](url)`) render as a small user-initiated link labeled "image: alt";
+  nothing is loaded until the user clicks.
+- Raw HTML (including `<script>`) is displayed as text.
+- Not supported: tables, task lists, nested lists beyond simple indentation, syntax
+  highlighting, and autolinked bare URLs.
+- Empty notes show "Nothing to preview."
+- Switching tabs re-renders the preview; adding a note returns to editing; clearing text
+  exits preview and clears the note.
+- Toggling focuses the preview document (or the editor when returning); the toggle exposes
+  `aria-pressed` and a changing accessible name. Shortcut: `Ctrl/⌘ + Alt + M`.
+
+### 5.13 Offline and install
+
+- `manifest.webmanifest` provides the name, icons, theme colors, standalone display, and
+  relative `start_url`/`scope`, so it works under `/textarea/`.
+- Icons: 192 and 512 PNG for any purpose, a 512 maskable icon, and an Apple touch icon.
+- `sw.js` is a same-origin service worker scoped to the app. On install it pre-caches the
+  HTML, CSS, JS modules, font-free assets, manifest, and icons.
+- Fetch strategy: network-first for same-origin GET requests, with cache fallback when
+  offline. Successful responses refresh the cache. There are no third-party fetches.
+- The worker caches app files only. It cannot read `localStorage`, so note text and
+  preferences are never cached.
+- Offline: after one successful online visit, the app shell loads without a network,
+  notes remain editable, and opening a share link still imports locally.
+- Installability: browsers offer installation on HTTPS when the manifest, icons, and
+  service worker criteria are met. Registration failures are silent and degrade to the
+  normal online app.
+- Updating: online loads fetch fresh same-origin files (network-first); offline loads use
+  the last cached shell until the next online visit.
 
 ## 6. UI layout
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ [1·txt] [2·txt] [+]                        ◐   Share         │
+│ [1·txt] [2·txt] [+]                      ◉  ◐   Share        │
 ├────┬─────────────────────────────────────────────────────────┤
 │  1 │ Start typing...                                         │
 │  2 │                                                         │
@@ -268,6 +329,7 @@ content.
 - Thin 42–48 px top bar; editor fills the viewport; 34–40 px status bar.
 - Active tab uses a raised, bordered treatment; inactive tabs are flat.
 - Share opens an anchored popover, not a modal.
+- The eye is the Markdown preview toggle; the moon/sun toggles the theme.
 - The "Private" control opens a small dialog explaining local-only storage.
 
 ## 7. Keyboard shortcuts
@@ -281,6 +343,7 @@ content.
 | Toggle theme | `Ctrl/⌘ + Alt + D` |
 | Open Share | `Ctrl/⌘ + Alt + S` |
 | Toggle word wrap | `Ctrl/⌘ + Alt + L` |
+| Toggle Markdown preview | `Ctrl/⌘ + Alt + M` |
 | Open privacy dialog | `Ctrl/⌘ + Alt + P` |
 | Close popover / cancel rename | `Esc` |
 | Toggle a line highlight | `Enter` / `Space` on a focused line number |
@@ -300,6 +363,10 @@ browser.
   fails, surface it and keep the text in memory.
 - **Browser tabs:** multiple tabs of the site do not sync. Each tab keeps its own
   in-memory state and the last tab to save wins. Use one tab at a time.
+- **Markdown preview:** safe subset only. Tables, task lists, nested lists, syntax
+  highlighting, raw HTML execution, and remote images are not supported.
+- **Offline:** requires one successful online visit to install the service worker.
+  Clearing site data removes the cached app shell.
 
 ## 9. Data model (localStorage)
 
@@ -318,14 +385,13 @@ ta:v1:prefs    → { theme: "auto" | "light" | "dark", wrap: boolean }
 
 Reviewed later; none are blockers for shipping:
 
-- Markdown preview pane.
 - QR code for share links (client-side library only, bundled locally).
-- Installable PWA with a service worker for offline loading.
 - Import via drag-and-drop or file picker.
-- A dedicated About page (v1 ships the privacy dialog instead).
+- A dedicated About page (the privacy dialog covers this for now).
 - Named spaces / `/ ~space/note` URLs.
 - Read-only guest mode.
 - Tab reordering, search/replace, go-to-line.
+- Richer Markdown (tables, task lists, images) and syntax highlighting.
 - Custom domain.
 
 Anything added later must preserve §5.10. In particular, no third-party service may be
@@ -341,6 +407,8 @@ introduced for fonts, rendering, analytics, or sharing.
 | Font | System monospace stack; no webfonts |
 | License | **MIT** (add a `LICENSE` file) |
 | About | Short "Private by design" dialog, no separate page |
+| Markdown preview | Read-only safe subset; no raw HTML, remote images, or external loads |
+| Offline | Same-origin service worker caching the app shell only; no note data cached |
 | Custom domain | None |
 | Privacy posture | Local-only; no third-party resources; strict CSP; no clipboard reads; no autofill |
 
@@ -355,11 +423,19 @@ introduced for fonts, rendering, analytics, or sharing.
    stats.
    Verify: keyboard-only pass through every action.
 4. **Privacy and accessibility pass**
-   - DevTools Network shows only same-origin assets; zero requests after load.
-   - CSP has `connect-src 'none'`; source contains no `fetch`, XHR, WebSocket, beacon, or
-     third-party asset URLs.
+   - DevTools Network shows only same-origin assets; no third-party requests.
+   - CSP has `connect-src 'none'` and `worker-src 'self'`; the page source contains no
+     `fetch`, XHR, WebSocket, beacon, or third-party asset URLs. Only `sw.js` fetches,
+     and only same-origin app files.
    - Editor attributes confirm autofill/autocorrect/spellcheck are off.
    - Contrast and focus checks at 375 px, 768 px, and 1280 px.
-5. **Deploy** — GitHub Pages from `main`, relative paths, MIT license committed.
-   Verify: `https://steven-chau.github.io/textarea/` loads; share links work; no
-   post-load requests.
+5. **Markdown preview** — safe renderer, toggle, focus handling, tab integration.
+   Verify: headings, lists, code, links, and raw HTML; `javascript:` links are rejected;
+   no images or network requests; preview follows tab switches; clear exits preview.
+6. **Offline and install** — manifest, icons, service worker, registration.
+   Verify: valid manifest under `/textarea/`; active worker scope; cache contains only app
+   files; reload with the server stopped; offline share-link import; no note data in
+   CacheStorage; clean console and CSP.
+7. **Deploy** — GitHub Pages from `main`, relative paths, MIT license committed.
+   Verify: `https://steven-chau.github.io/textarea/` loads; share links work; install
+   prompt appears; offline reload works from the installed/cached app.
